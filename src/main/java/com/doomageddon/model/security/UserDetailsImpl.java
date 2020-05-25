@@ -5,12 +5,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
+import static java.util.Collections.singletonList;
 
 public class UserDetailsImpl implements UserDetails {
 
@@ -29,12 +27,7 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     private List<GrantedAuthority> getUserRoles(User user) {
-        return ofNullable(user.getRoles())
-                .map(roles -> roles
-                        .stream()
-                        .map(role -> (GrantedAuthority) new SimpleGrantedAuthority(role.toString()))
-                        .collect(toList()))
-                .orElseGet(ArrayList::new);
+        return singletonList(new SimpleGrantedAuthority(user.getRole().toString()));
     }
 
     public Long getUserId() {

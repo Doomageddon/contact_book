@@ -1,13 +1,11 @@
 package com.doomageddon.model.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 import javax.persistence.*;
 
+import static javax.persistence.FetchType.LAZY;
 import static javax.persistence.GenerationType.IDENTITY;
 
 @Data
@@ -17,9 +15,11 @@ import static javax.persistence.GenerationType.IDENTITY;
 @AllArgsConstructor
 @Accessors(chain = true)
 @Table(name = "Contacts")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Contact {
 
     @Id
+    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
 
@@ -29,7 +29,7 @@ public class Contact {
 
     private Long phone;
 
-    @ManyToOne
+    @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 }

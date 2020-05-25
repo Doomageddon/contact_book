@@ -1,8 +1,6 @@
 package com.doomageddon.controller;
 
 import com.doomageddon.model.dto.ContactDto;
-import com.doomageddon.model.dto.CreateContactDto;
-import com.doomageddon.model.dto.EditContactDto;
 import com.doomageddon.service.ContactService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +24,8 @@ public class ContactController {
     public Page<ContactDto> getUserContacts(@AuthenticationPrincipal(expression = "userId") Long userId,
                                             Pageable pageable) {
 
-        log.info("Get contacts for user with id - {}", userId);
+        log.info("Get contacts for user with id - {}, with page = {}, and size = {}", userId,
+                pageable.getPageNumber(), pageable.getPageSize());
         Page<ContactDto> contactDto = contactService.getContacts(userId, pageable);
         log.info("Returned user contacts - {}", contactDto.getContent());
 
@@ -34,11 +33,11 @@ public class ContactController {
     }
 
     @PostMapping
-    public CreateContactDto createContact(@RequestBody @Valid CreateContactDto createContactDto,
-                                          @AuthenticationPrincipal(expression = "userId") Long userId) {
+    public ContactDto createContact(@RequestBody @Valid ContactDto createContactDto,
+                                    @AuthenticationPrincipal(expression = "userId") Long userId) {
 
         log.info("Create contact for user with id - {} with params - {}", userId, createContactDto);
-        CreateContactDto contactDto = contactService.createContact(createContactDto, userId);
+        ContactDto contactDto = contactService.createContact(createContactDto, userId);
         log.info("Created contact - {}", contactDto);
 
         return contactDto;
@@ -46,21 +45,22 @@ public class ContactController {
 
     @PutMapping("/{contactId}")
     public ContactDto editContact(@PathVariable Long contactId,
-                                  @RequestBody @Valid EditContactDto editContactDto,
+                                  @RequestBody @Valid ContactDto editContactDto,
                                   @AuthenticationPrincipal(expression = "userId") Long userId) {
 
         log.info("Edit contact {} for user with id - {} with params - {}", contactId, userId, editContactDto);
-        ContactDto contactDto = contactService.editContact(editContactDto, contactId);
+        ContactDto contactDto = contactService.editContact(editContactDto, contactId, userId);
         log.info("Edited contact - {}", contactDto);
 
         return contactDto;
     }
 
     @DeleteMapping("/{contactId}")
-    public void deleteContact(@PathVariable Long contactId) {
+    public void deleteContact(@PathVariable Long contactId,
+                              @AuthenticationPrincipal(expression = "userId") Long userId) {
 
-        log.info("Delete contact with id - {}", contactId);
-        contactService.deleteContact(contactId);
+        log.info("Delete contact with id - {} for user with id - {}", contactId, userId);
+        contactService.deleteContact(contactId, userId);
         log.info("Contact deleted");
     }
 }

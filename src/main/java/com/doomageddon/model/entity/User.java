@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import static javax.persistence.CascadeType.ALL;
+import static javax.persistence.CascadeType.REMOVE;
 import static javax.persistence.EnumType.STRING;
 import static javax.persistence.FetchType.EAGER;
 import static javax.persistence.GenerationType.IDENTITY;
@@ -32,22 +33,22 @@ public class User {
 
     private Boolean isEnabled;
 
-    @Builder.Default
     @Enumerated(STRING)
-    @Column(name = "role")
-    @ElementCollection(fetch = EAGER)
-    @CollectionTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"))
-    List<Role> roles = new ArrayList<>();
+    Role role;
 
     @Builder.Default
     @Setter(PRIVATE)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "user", cascade = ALL)
+    @OneToMany(mappedBy = "user", cascade = ALL, orphanRemoval = true)
     private Set<Contact> contacts = new HashSet<>();
 
     public void addContact(Contact contact) {
         contact.setUser(this);
         contacts.add(contact);
+    }
+
+    public void removeContact(Contact contact) {
+        contacts.remove(contact);
     }
 }

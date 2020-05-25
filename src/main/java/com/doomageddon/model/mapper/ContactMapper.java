@@ -2,8 +2,6 @@ package com.doomageddon.model.mapper;
 
 
 import com.doomageddon.model.dto.ContactDto;
-import com.doomageddon.model.dto.CreateContactDto;
-import com.doomageddon.model.dto.EditContactDto;
 import com.doomageddon.model.entity.Contact;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +10,7 @@ import static java.util.Optional.ofNullable;
 @Component
 public class ContactMapper {
 
-    public Contact toEntity(CreateContactDto createContactDto) {
+    public Contact toEntity(ContactDto createContactDto) {
         return Contact.builder()
                 .firstName(createContactDto.getFirstName())
                 .lastName(createContactDto.getLastName())
@@ -29,7 +27,7 @@ public class ContactMapper {
                 .build();
     }
 
-    public Contact edit(EditContactDto editContactDto, Contact contact) {
+    public Contact edit(ContactDto editContactDto, Contact contact) {
         return contact
                 .setFirstName(editContactDto.getFirstName())
                 .setLastName(editContactDto.getLastName())

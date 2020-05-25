@@ -1,10 +1,9 @@
 package com.doomageddon.service.impl;
 
 import com.doomageddon.model.dto.ContactDto;
-import com.doomageddon.model.dto.CreateContactDto;
-import com.doomageddon.model.dto.EditContactDto;
 import com.doomageddon.model.entity.Contact;
 import com.doomageddon.model.entity.User;
+import com.doomageddon.model.exception.ResourceNotFoundException;
 import com.doomageddon.model.mapper.ContactMapper;
 import com.doomageddon.repository.ContactRepository;
 import com.doomageddon.repository.UserRepository;
@@ -16,6 +15,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.doomageddon.model.entity.Role.ROLE_USER;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,10 +27,10 @@ public class ContactServiceImpl implements ContactService {
     private final ContactRepository contactRepository;
 
     @Override
-    @Transactional(readOnly = true)
     public Page<ContactDto> getContacts(Long userId, Pageable pageable) {
 
-        log.info("'getContacts' invoked with user id - {}", userId);
+        log.info("'getContacts' invoked for user with id - {}, with page = {}, and size = {}", userId,
+                pageable.getPageNumber(), pageable.getPageSize());
 
         User user = userRepository.getOne(userId);
         Page<ContactDto> contactDto = contactRepository.getByUser(user, pageable).map(contactMapper::toDto);
@@ -41,7 +42,7 @@ public class ContactServiceImpl implements ContactService {
 
     @Override
     @Transactional
-    public CreateContactDto createContact(CreateContactDto createContactDto, Long userId) {
+    public ContactDto createContact(ContactDto createContactDto, Long userId) {
 
         log.info("'createContact' for user with id - {} invoked with params - {}", userId, createContactDto);
 
@@ -49,18 +50,28 @@ public class ContactServiceImpl implements ContactService {
         Contact contact = contactMapper.toEntity(createContactDto);
         user.addContact(contact);
 
-        log.info("'createContact' returned - {}", createContactDto);
+        ContactDto contactDto = contactMapper.toDto(contact);
 
-        return createContactDto;
+        log.info("'createContact' returned - {}", contactDto);
+
+        return contactDto;
     }
 
     @Override
     @Transactional
-    public ContactDto editContact(EditContactDto editContactDto, Long contactId) {
+    public ContactDto editContact(ContactDto editContactDto, Long contactId, Long userId) {
 
         log.info("'editContact' with id - {} invoked with params - {}", contactId, editContactDto);
 
-        Contact contact = contactRepository.getOne(contactId);
+        User user = userRepository.getOne(userId);
+
+        Contact contact;
+        if (ROLE_USER.equals(user.getRole()))
+            contact = contactRepository.getByIdAndUser(contactId, user)
+                    .orElseThrow(() -> new ResourceNotFoundException("You don`t have such contact."));
+        else
+            contact = contactRepository.getOne(contactId);
+
         log.info("Contact before edit - {}", contact);
 
         Contact editedContact = contactMapper.edit(editContactDto, contact);
@@ -72,11 +83,18 @@ public class ContactServiceImpl implements ContactService {
     }
 
     @Override
-    public void deleteContact(Long contactId) {
+    @Transactional
+    public void deleteContact(Long contactId, Long userId) {
 
-        log.info("'deleteContact' with id - {}", contactId);
-        contactRepository.deleteById(contactId);
+        log.info("'deleteContact' with id - {} for user with id - {}", contactId, userId);
+
+        User user = userRepository.getOne(userId);
+
+        if (ROLE_USER.equals(user.getRole()))
+            user.removeContact(Contact.builder().id(contactId).build());
+        else
+            contactRepository.deleteById(contactId);
+
         log.info("Contact deleted");
-
     }
 }

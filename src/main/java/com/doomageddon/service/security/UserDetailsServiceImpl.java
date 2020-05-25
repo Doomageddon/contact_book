@@ -23,6 +23,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @SneakyThrows
     public UserDetails loadUserByUsername(String userName) {
+
         log.info("loadUserByUsername invoked with userName: {}", userName);
 
         User user = userRepository.findByName(userName)

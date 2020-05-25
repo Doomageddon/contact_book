@@ -1,32 +1,26 @@
-package com.doomageddon;
+package com.doomageddon.controller;
 
 import com.doomageddon.model.dto.ContactDto;
-import com.doomageddon.model.dto.CreateContactDto;
-import com.doomageddon.model.dto.EditContactDto;
-import com.doomageddon.model.entity.Contact;
-import com.doomageddon.model.entity.User;
 import com.doomageddon.repository.ContactRepository;
 import com.doomageddon.repository.UserRepository;
-import com.doomageddon.util.TokenProvider;
+import com.doomageddon.util.IntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.springtestdbunit.annotation.DatabaseSetup;
+import com.github.springtestdbunit.annotation.ExpectedDatabase;
 import lombok.SneakyThrows;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.stream.Stream;
 
-import static com.doomageddon.model.entity.Role.ROLE_USER;
+import static com.github.springtestdbunit.assertion.DatabaseAssertionMode.NON_STRICT_UNORDERED;
 import static java.util.stream.Stream.of;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -34,16 +28,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@TestInstance(PER_CLASS)
+@IntegrationTest
+@DatabaseSetup("/dbunit/contacts/setup_db.xml")
 public class ContactControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private TokenProvider tokenProvider;
 
     @Autowired
     private UserRepository userRepository;
@@ -54,23 +44,14 @@ public class ContactControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @BeforeAll
-    void setupDb() {
-
-        User user = userRepository.save(User.builder().id(1L).name("John Doe").build());
-        contactRepository.save(Contact.builder().id(1L).firstName("Thomas").lastName("Hawk").phone(0L).user(user).build());
-        contactRepository.save(Contact.builder().id(2L).firstName("Peter").lastName("Hawk").phone(0L).user(user).build());
-
-    }
-
     @SneakyThrows
     @ParameterizedTest
+    @WithUserDetails(value = "John Doe")
     @MethodSource("argumentsForGetContacts")
-    public void getUserContacts(ContactDto contactDto) {
+    public void getUserContactsTest(ContactDto contactDto) {
         mockMvc.perform(get("/book/contact")
                 .param("page", "1")
-                .param("size", "1")
-                .with(tokenProvider.addBearerToken(ROLE_USER.name())))
+                .param("size", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id", is(2)))
                 .andExpect(jsonPath("$.content[0].firstName", is(contactDto.getFirstName())))
@@ -88,12 +69,13 @@ public class ContactControllerTest {
 
     @SneakyThrows
     @ParameterizedTest
+    @WithUserDetails(value = "John Doe")
     @MethodSource("argumentsForCreateContact")
-    public void createContactTest(CreateContactDto createContactDto) {
+    @ExpectedDatabase(assertionMode = NON_STRICT_UNORDERED, value = "/dbunit/contacts/expected_for_create.xml")
+    public void createContactTest(ContactDto createContactDto) {
         mockMvc.perform(post("/book/contact")
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(createContactDto))
-                .with(tokenProvider.addBearerToken(ROLE_USER.name())))
+                .content(objectMapper.writeValueAsString(createContactDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.firstName", is(createContactDto.getFirstName())))
                 .andExpect(jsonPath("$.lastName", is(createContactDto.getLastName())))
@@ -105,18 +87,19 @@ public class ContactControllerTest {
         return of(arguments(createContactDto()));
     }
 
-    private CreateContactDto createContactDto() {
-        return CreateContactDto.builder().firstName("Simon").lastName("Doe").build();
+    private ContactDto createContactDto() {
+        return ContactDto.builder().firstName("Simon").lastName("Doe").build();
     }
 
     @SneakyThrows
     @ParameterizedTest
+    @WithUserDetails(value = "Admin")
     @MethodSource("argumentsForEditContact")
-    public void editContactTest(EditContactDto editContactDto) {
+    @ExpectedDatabase(assertionMode = NON_STRICT_UNORDERED, value = "/dbunit/contacts/expected_for_edit_by_admin.xml")
+    public void editContactTest(ContactDto editContactDto) {
         mockMvc.perform(put("/book/contact/{contactId}", 2)
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(editContactDto))
-                .with(tokenProvider.addBearerToken(ROLE_USER.name())))
+                .content(objectMapper.writeValueAsString(editContactDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(2)))
                 .andExpect(jsonPath("$.firstName", is(editContactDto.getFirstName())))
@@ -129,15 +112,16 @@ public class ContactControllerTest {
         return of(arguments(editContactDto()));
     }
 
-    private EditContactDto editContactDto() {
-        return EditContactDto.builder().firstName("Peter").lastName("Hawk").phone(3333L).build();
+    private ContactDto editContactDto() {
+        return ContactDto.builder().firstName("Peter").lastName("Hawk").phone(3333L).build();
     }
 
     @Test
     @SneakyThrows
+    @WithUserDetails(value = "Admin")
+    @ExpectedDatabase(assertionMode = NON_STRICT_UNORDERED, value = "/dbunit/contacts/expected_for_delete_by_admin.xml")
     public void deleteContactTest() {
-        mockMvc.perform(delete("/book/contact/{contactId}", 3)
-                .with(tokenProvider.addBearerToken(ROLE_USER.name())))
+        mockMvc.perform(delete("/book/contact/{contactId}", 2))
                 .andExpect(status().isOk())
                 .andDo(print());
     }

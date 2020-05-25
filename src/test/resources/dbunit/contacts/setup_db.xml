@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <users id="1" name="John Doe" password="{bcrypt}$2a$10$e3kqKRWc6uSaGCsjmijGw.7JyfnZSekmMcmLY4paqCfd03O0Ei2i6"
+           is_enabled="true" role="ROLE_USER"/>
+    <users id="2" name="Admin" password="{bcrypt}$2a$10$e3kqKRWc6uSaGCsjmijGw.7JyfnZSekmMcmLY4paqCfd03O0Ei2i6"
+           is_enabled="true" role="ROLE_ADMIN"/>
+
+    <contacts id="1" first_name="Thomas" last_name="Hawk" user_id="1"/>
+    <contacts id="2" first_name="Peter" last_name="Hawk" user_id="1"/>
+</dataset>

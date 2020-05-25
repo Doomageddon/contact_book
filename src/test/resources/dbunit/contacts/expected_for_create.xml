@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <contacts first_name="Thomas" last_name="Hawk" user_id="1"/>
+    <contacts first_name="Peter" last_name="Hawk" user_id="1"/>
+    <contacts first_name="Simon" last_name="Doe" user_id="1"/>
+</dataset>
